@@ -1,0 +1,14 @@
+{
+    "autopep8.args": [
+        "--max-line-length",
+        "100",
+        "--experimental",
+        "--aggressive"
+    ],
+    "pylint.args": [
+        "--max-line-length=150"
+    ],
+    "flake8.args": [
+        "--max-line-length=150"
+    ]
+}
