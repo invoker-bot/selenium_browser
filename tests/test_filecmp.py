@@ -12,7 +12,7 @@ current_dir = path.dirname(__file__)
 
 def test_filecmp():
     assert filecmp.cmp(path.join(current_dir, "default", "same.txt"), path.join(current_dir, "other", "same.txt"))
-    assert not filecmp.cmp(path.join(current_dir, "default", "diff.txt"), path.join(current_dir, "other", "diff.txt"))
+    assert not filecmp.cmp(path.join(current_dir, "default", "diff.txt"), path.join(current_dir, "other", "diff.txt"), shallow=False)
 
 
 def test_dircmp():

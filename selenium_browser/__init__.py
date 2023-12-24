@@ -1,11 +1,15 @@
-from selenium.webdriver.chrome.service import Service
+"""Selenium Browser"""
 import os
 from typing import Type
+from dataclasses import dataclass
+from selenium.webdriver.chrome.service import Service
 from selenium import webdriver
 from webdriver_manager.core.manager import DriverManager
 
 
+@dataclass
 class BrowserOptions:
+    """options"""
     data_dir: str = None
     proxy_server: str = None
     extensions_dirs: list[str] = None
