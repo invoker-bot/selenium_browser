@@ -23,7 +23,6 @@ class ChromeBrowser(RemoteBrowser):
             driver_options.add_argument("--disable-dev-shm-usage")
             driver_options.add_argument("--disable-gpu")
         if options.data_dir is not None:
-            cls.make_root_data_dir()
             driver_options.add_argument(f"--user-data-dir={cls.get_data_dir(options.data_dir)}")
         if options.proxy_server is not None and not cls.use_seleniumwire(options):
             # proxy_server is not a proxy server with authentication

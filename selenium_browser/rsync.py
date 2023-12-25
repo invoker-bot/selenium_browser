@@ -38,7 +38,7 @@ import hashlib
 __all__ = ["rollingchecksum", "weakchecksum", "patchstream", "rsyncdelta", "blockchecksums"]
 
 
-def rsyncdelta(datastream, remotesignatures, blocksize=4096):
+def rsyncdelta(datastream, remotesignatures, blocksize=4096):  # pylint: disable=too-many-locals
     """
     Generates a binary patch when supplied with the weak and strong
     hashes from an unpatched target and a readable stream for the
@@ -126,8 +126,8 @@ def blockchecksums(instream, blocksize=4096):
     Returns a list of weak and strong hashes for each block of the
     defined size for the given data stream.
     """
-    weakhashes = list()
-    stronghashes = list()
+    weakhashes = []
+    stronghashes = []
     read = instream.read(blocksize)
 
     while read:

@@ -4,7 +4,7 @@
 import filecmp
 import tempfile
 from os import path
-from selenium_browser.zip import pack_dir_with_ref, unpack_dir_with_ref
+from selenium_browser.patch import pack_dir_with_ref, unpack_dir_with_ref
 
 
 current_dir = path.dirname(__file__)

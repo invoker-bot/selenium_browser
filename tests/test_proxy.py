@@ -1,6 +1,7 @@
 # pylint: disable=missing-function-docstring
 """Test proxy."""
 import os
+import shutil
 from multiprocessing import Process
 from urllib.parse import urlparse
 import pytest
@@ -33,16 +34,13 @@ def proxy_server(request):
 def valid_browsers():
     if os.getenv('BROWSER'):
         return [{'chrome': ChromeBrowser, 'firefox': FirefoxBrowser, 'edge': EdgeBrowser}[os.getenv('BROWSER')]]
-    # result = [browser_cls for browser_cls in (ChromeBrowser, FirefoxBrowser, EdgeBrowser) if browser_cls.is_installed()]
-    # if len(result) == 0:  # at least one browser should be tested
-    # return result
     return [ChromeBrowser]
 
 
 @pytest.mark.xfail(reason="network is not available occasionally")
 @pytest.mark.parametrize('browser_cls', valid_browsers())
 def test_proxy(proxy_server, browser_cls):  # pylint: disable=redefined-outer-name
-    print(f"Testing with proxy server at: {proxy_server}")
+    # print(f"Testing with proxy server at: {proxy_server}")
     assert proxy_server is None or urlparse(proxy_server).scheme in ('http', 'https')
     options = BrowserOptions(headless=True, proxy_server=proxy_server)
     browser = browser_cls(options)
@@ -51,4 +49,16 @@ def test_proxy(proxy_server, browser_cls):  # pylint: disable=redefined-outer-na
     assert browser.driver.title == 'Example Domain'
     assert browser.driver.find_element(By.TAG_NAME, 'h1').text == 'Example Domain'
     browser.quit()
-    # assert browser.driver.title == 'Proxy server received request'
+
+
+@pytest.mark.parametrize('browser_cls', valid_browsers())
+def test_data_dir(browser_cls):
+    options = BrowserOptions(headless=True, data_dir='test')
+    browser = browser_cls(options)
+    # browser.driver.get("https://example.org/")
+    # backup_dir = browser_cls.get_data_dir('test_backup')
+    # if os.path.exists(backup_dir):
+    #    shutil.rmtree(backup_dir)
+    # shutil.copytree(browser.data_dir, backup_dir, symlinks=True)
+    browser.quit()
+    # browser = browser_cls(options, 0)

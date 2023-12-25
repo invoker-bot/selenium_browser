@@ -2,16 +2,21 @@
 import os
 import shutil
 import tempfile
+import logging
 from abc import ABC, abstractmethod
 from typing import Type
 from dataclasses import dataclass
-from selenium import webdriver
 from requests.exceptions import RequestException
-from selenium.webdriver.support.wait import WebDriverWait
+from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.service import Service as DriverService
 from selenium.webdriver.common.options import ArgOptions as DriverOptions
 from webdriver_manager.core.manager import DriverManager
+from .patch import pack_dir_with_ref, unpack_dir_with_ref
+
+
+logger = logging.getLogger('selenium_browser')
 
 
 @dataclass
@@ -23,6 +28,7 @@ class BrowserOptions:
     headless: bool = False
     force_selenium_wire: bool = False
     wait_timeout: float = 15.0
+    compressed: bool = False
 
 
 class RemoteBrowser(ABC):
@@ -37,6 +43,24 @@ class RemoteBrowser(ABC):
         self.options = options
         if driver_manager is None:
             driver_manager = self.default_driver_manager()
+        if options.data_dir is not None:
+            self.make_root_data_dir()
+            if options.compressed:
+                if not os.path.isdir(self.get_data_dir('default')):
+                    default_options = BrowserOptions(data_dir='default', headless=True, compressed=False)
+                    default_driver = self.new_driver(default_options, self.driver_options(
+                        default_options), self.driver_service(driver_manager))
+                    default_driver.quit()
+                if not os.path.isdir(self.get_data_dir('default')):
+                    options.compressed = False
+                    logger.warning("Reference dir '%s' not created, using uncompressed data dir", options.data_dir)
+                else:
+                    compressed_file = self.get_data_dir(options.data_dir + ".patch")
+                    if not os.path.exists(self.data_dir):
+                        if os.path.exists(compressed_file):
+                            unpack_dir_with_ref(self.get_data_dir('default'), compressed_file, self.data_dir)
+                        else:
+                            shutil.copytree(self.get_data_dir('default'), self.data_dir, symlinks=True)
         self.driver = self.new_driver(options, self.driver_options(options), self.driver_service(driver_manager))
         self.config_driver()
         self.wait = WebDriverWait(self.driver, options.wait_timeout)
@@ -50,6 +74,16 @@ class RemoteBrowser(ABC):
     def quit(self):
         """Quit the browser"""
         self.driver.quit()
+        if self.options.data_dir is not None and self.options.compressed:
+            if os.path.isdir(self.data_dir):
+                if os.path.isdir(self.get_data_dir('default')):
+                    compressed_file = self.get_data_dir(self.options.data_dir + ".patch")
+                    pack_dir_with_ref(self.get_data_dir('default'), compressed_file, self.data_dir)
+                else:
+                    logger.warning("Default dir '%s' not found, removing data dir", self.get_data_dir('default'))
+                    shutil.rmtree(self.get_data_dir(self.options.data_dir))
+            else:
+                logger.warning("Data dir '%s' not found", self.data_dir)
 
     @classmethod
     @abstractmethod
@@ -129,8 +163,10 @@ class RemoteBrowser(ABC):
     def clear_data_dir(cls, name: str):
         """Clear data"""
         data_dir = cls.get_data_dir(name)
-        if os.path.exists(data_dir):
+        if os.path.isdir(data_dir):
             shutil.rmtree(data_dir)
+        if os.path.isfile(data_dir + ".patch"):
+            os.remove(data_dir + ".patch")
 
     @property
     def data_dir(self):
