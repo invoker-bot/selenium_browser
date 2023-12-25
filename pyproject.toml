@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9"
+python = "^3.9"
 selenium = "^4.16.0"
 selenium-wire = "^5.1.0"
 webdriver-manager = "^4.0.1"
@@ -20,6 +20,7 @@ flake8 = "^6.1.0"
 pylint = "^3.0.3"
 mock = "^5.1.0"
 freezegun = "^1.4.0"
+pproxy = "^2.7.8"
 
 [build-system]
 requires = ["poetry-core"]

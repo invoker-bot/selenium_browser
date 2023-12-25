@@ -1,52 +1,65 @@
 """Firefox web driver."""
 import os
-import tempfile
 from urllib.parse import urlparse
 from selenium import webdriver
-from selenium.webdriver.firefox.service import Service as FirefoxService
 from seleniumwire import webdriver as wire_webdriver
 from webdriver_manager.firefox import GeckoDriverManager
-from . import config_driver, config_selenium_wire
+from . import RemoteBrowser
 
 
-def web_driver(headless=False, data_dir: str = None, proxy_server: str = None, extensions_dirs: list[str] = None,
-               download_manager: GeckoDriverManager = None):
-    """Firefox web driver."""
-    options = webdriver.FirefoxOptions()
-    options.headless = headless
-    if data_dir is not None:
-        parent_data_dir = os.path.join(tempfile.gettempdir(), "selenium_browser_data")
-        os.makedirs(parent_data_dir, exist_ok=True)
-        options.profile = os.path.join(parent_data_dir, data_dir)
+class FirefoxBrowser(RemoteBrowser):
+    """Firefox browser"""
 
-    if proxy_server is not None and proxy_server.find('@') == -1:
-        result = urlparse(proxy_server)
-        options.set_preference("network.proxy.type", 1)
-        if result.scheme == 'socks5':
-            options.set_preference("network.proxy.socks", result.hostname)
-            options.set_preference("network.proxy.socks_port", result.port)
-            options.set_preference("network.proxy.socks_version", 5)
-        elif result.scheme in ('http', 'https'):
-            options.set_preference("network.proxy.http", result.hostname)
-            options.set_preference("network.proxy.http_port", result.port)
-            options.set_preference("network.proxy.ssl", result.hostname)
-            options.set_preference("network.proxy.ssl_port", result.port)
-        else:
-            raise ValueError(f"unsupported proxy server scheme: '{result.scheme}'")
-        options.set_preference("network.proxy.no_proxies_on", "localhost, 127.0.0.1")
-    if download_manager is None:
-        download_manager = GeckoDriverManager()
-    service = FirefoxService(download_manager.install())
-    if proxy_server is not None and proxy_server.find('@') != -1:
-        driver = wire_webdriver.Firefox(options=options, service=service,
-                                        seleniumwire_options=config_selenium_wire(proxy_server))
-    else:
-        driver = webdriver.Firefox(options=options, service=service)
+    @classmethod
+    def driver_options(cls, options):
+        """Driver options"""
+        driver_options = webdriver.FirefoxOptions()
+        driver_options.accept_insecure_certs = True
+        driver_options.headless = options.headless
+        if options.data_dir is not None:
+            cls.make_root_data_dir()
+            options.profile = cls.get_data_dir(options.data_dir)
+        if options.proxy_server is not None and not cls.use_seleniumwire(options):
+            result = urlparse(options.proxy_server)
+            if result.scheme == 'socks5':
+                driver_options.set_preference("network.proxy.socks", result.hostname)
+                driver_options.set_preference("network.proxy.socks_port", result.port)
+                driver_options.set_preference("network.proxy.socks_version", 5)
+            elif result.scheme in ('http', 'https'):
+                driver_options.set_preference("network.proxy.http", result.hostname)
+                driver_options.set_preference("network.proxy.http_port", result.port)
+                driver_options.set_preference("network.proxy.ssl", result.hostname)
+                driver_options.set_preference("network.proxy.ssl_port", result.port)
+            else:
+                raise ValueError(f"unsupported proxy server scheme: '{result.scheme}'")
+            driver_options.set_preference("network.proxy.type", 1)
+            driver_options.set_preference("network.proxy.no_proxies_on", "localhost, 127.0.0.1")
+        return driver_options
 
-    if extensions_dirs is not None:
-        for extensions_dir in extensions_dirs:
-            for extension_name in os.listdir(extensions_dir):
-                extension_dir = os.path.join(extensions_dir, extension_name)
-                if os.path.isfile(extension_dir) and extension_dir.endswith('.xpi'):
-                    driver.install_addon(extension_dir)
-    return config_driver(driver)
+    @classmethod
+    def driver_service(cls, driver_manager):
+        """Driver service"""
+        return webdriver.FirefoxService(driver_manager.install())
+
+    @classmethod
+    def new_driver(cls, options, driver_options, service):
+        """Default driver"""
+        if cls.use_seleniumwire(options):
+            return wire_webdriver.Firefox(options=driver_options, service=service,
+                                          seleniumwire_options=cls.default_seleniumwire_config(options))
+        return webdriver.Firefox(options=driver_options, service=service)
+
+    @classmethod
+    def default_driver_manager(cls):
+        """Default driver manager"""
+        return GeckoDriverManager()
+
+    def config_driver(self):
+        """Configure the driver"""
+        if self.options.extensions_dirs is not None:
+            for extensions_dir in self.options.extensions_dirs:
+                for extension_name in os.listdir(extensions_dir):
+                    extension_dir = os.path.join(extensions_dir, extension_name)
+                    if os.path.isfile(extension_dir) and extension_dir.endswith('.xpi'):
+                        self.driver.install_addon(extension_dir)
+        super().config_driver()

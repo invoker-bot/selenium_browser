@@ -601,6 +601,23 @@ dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
 
 [[package]]
+name = "pproxy"
+version = "2.7.8"
+description = "Proxy server that can tunnel among remote servers by regex rules."
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pproxy-2.7.8-py3-none-any.whl", hash = "sha256:9f300bae5288c7c7f56be70d6275571efd2b4862f306d25bdace3c3537fb53a7"},
+    {file = "pproxy-2.7.8.tar.gz", hash = "sha256:fab73cc13b2bb10c9fc4d9c1a8ec8011a354c9bcbffa446d91229e13c5d996c8"},
+]
+
+[package.extras]
+accelerated = ["pycryptodome (>=3.7.2)", "uvloop (>=0.13.0)"]
+daemon = ["python-daemon (>=2.2.3)"]
+quic = ["aioquic (>=0.9.7)"]
+sshtunnel = ["asyncssh (>=2.5.0)"]
+
+[[package]]
 name = "pyasn1"
 version = "0.5.1"
 description = "Pure-Python implementation of ASN.1 types and DER/BER/CER codecs (X.208)"
@@ -1161,5 +1178,5 @@ cffi = ["cffi (>=1.11)"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.9"
-content-hash = "12a8b95820934a5720a46b3a8f9d220715d23e90a78418433b1e425dfbb003a5"
+python-versions = "^3.9"
+content-hash = "aaf88f81415053e74fc60c3e1c262fce2a762a134b2686f854ac9c1f02faa158"

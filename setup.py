@@ -48,6 +48,7 @@ setup(
         'pylint >= 3.0.3',
         'mock >= 5.1.0',
         'freezegun >= 1.4.0',
+        'pproxy >= 2.7.8',
     ],
     license='MIT',
     aliases={

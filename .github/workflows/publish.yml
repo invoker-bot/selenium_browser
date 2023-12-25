@@ -8,6 +8,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: ['chrome', 'firefox', 'edge'] 
     steps:
       - uses: actions/checkout@v4
 
@@ -16,6 +19,18 @@ jobs:
         with:
           python-version: '3.9'
 
+      - name: Set up Chrome
+        if: matrix.browser == 'chrome'
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Set up Firefox
+        if: matrix.browser == 'firefox'
+        uses: browser-actions/setup-firefox@v1
+      
+      - name: Set up Edge
+        if: matrix.browser == 'edge'
+        uses: browser-actions/setup-edge@v1
+      
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -23,6 +38,8 @@ jobs:
 
       - name: Run tox
         run: tox
+        env:
+          BROWSER: ${{ matrix.browser }}
 
   publish:
     needs: test
