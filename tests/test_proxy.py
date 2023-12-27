@@ -7,10 +7,10 @@ import pytest
 from pproxy.server import main as pproxy_main
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
-from selenium_browser import BrowserOptions
-from selenium_browser.chrome import ChromeBrowser
-from selenium_browser.edge import EdgeBrowser
-from selenium_browser.firefox import FirefoxBrowser
+from webdriver_browser import BrowserOptions
+from webdriver_browser.chrome import ChromeBrowser
+from webdriver_browser.edge import EdgeBrowser
+from webdriver_browser.firefox import FirefoxBrowser
 
 
 @pytest.fixture(scope="module", params=[None, 'http://localhost:9999', 'http://user:password@localhost:10000'])

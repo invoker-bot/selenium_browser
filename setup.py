@@ -3,19 +3,19 @@
 """Setup script for selenium_browser."""
 from setuptools import setup, find_packages
 
-__version__ = '0.1.0.dev1'
+__version__ = '0.1.0.dev2'
 
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 
 
 setup(
-    name='selenium_browser',
+    name='webdriver-browser',
     # dev[n] .alpha[n] .beta[n] .rc[n] .post[n] .final
     version=__version__,
     author='Invoker Bot',
     author_email='invoker-bot@outlook.com',
-    description='A SQLAlchemy based Python library for interacting with private Steam account database.',
+    description='More convenient methods for creating multiple selenium browsers.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/invoker-bot/selenium_browser',
