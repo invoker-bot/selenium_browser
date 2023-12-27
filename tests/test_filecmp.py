@@ -4,7 +4,7 @@
 import filecmp
 import tempfile
 from os import path
-from selenium_browser.patch import pack_dir_with_ref, unpack_dir_with_ref
+from selenium_browser.patch import pack_dir_with_ref, unpack_dir_with_ref, generate_dir_hash
 
 
 current_dir = path.dirname(__file__)
@@ -35,3 +35,4 @@ def test_zip():
     assert len(diffs.diff_files) == 0
     assert set(diffs.same_files) == {'diff.txt', 'same.txt', 'right.txt'}
     assert set(diffs.common) == {'diff.txt', 'same.txt', 'right.txt'}
+    assert generate_dir_hash(path.join(current_dir, "other")) == generate_dir_hash(tmp_dir)

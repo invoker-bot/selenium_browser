@@ -61,7 +61,7 @@ jobs:
         with:
             user: invoker
             password: ${{ secrets.PYPI_API_TOKEN }}
-            repository-url: https://test.pypi.org/
+            repository-url: https://pypi.org/
             packages-dir: dist/
             skip-existing: true
             verbose: true

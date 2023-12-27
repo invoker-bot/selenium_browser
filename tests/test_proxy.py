@@ -1,7 +1,6 @@
 # pylint: disable=missing-function-docstring
 """Test proxy."""
 import os
-import shutil
 from multiprocessing import Process
 from urllib.parse import urlparse
 import pytest
@@ -53,12 +52,11 @@ def test_proxy(proxy_server, browser_cls):  # pylint: disable=redefined-outer-na
 
 @pytest.mark.parametrize('browser_cls', valid_browsers())
 def test_data_dir(browser_cls):
-    options = BrowserOptions(headless=True, data_dir='test')
+    options = BrowserOptions(headless=True, data_dir='test', compressed=True)
+    test_dir = browser_cls.get_data_dir('test')
     browser = browser_cls(options)
-    # browser.driver.get("https://example.org/")
-    # backup_dir = browser_cls.get_data_dir('test_backup')
-    # if os.path.exists(backup_dir):
-    #    shutil.rmtree(backup_dir)
-    # shutil.copytree(browser.data_dir, backup_dir, symlinks=True)
+    browser.driver.get("https://example.org/")
     browser.quit()
-    # browser = browser_cls(options, 0)
+    assert os.stat(test_dir + ".patch").st_size < 512 * 1024
+    browser = browser_cls(options, None)
+    browser.quit()

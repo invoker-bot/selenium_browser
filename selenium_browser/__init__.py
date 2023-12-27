@@ -58,9 +58,10 @@ class RemoteBrowser(ABC):
                     compressed_file = self.get_data_dir(options.data_dir + ".patch")
                     if not os.path.exists(self.data_dir):
                         if os.path.exists(compressed_file):
-                            unpack_dir_with_ref(self.get_data_dir('default'), compressed_file, self.data_dir)
-                        else:
-                            shutil.copytree(self.get_data_dir('default'), self.data_dir, symlinks=True)
+                            try:
+                                unpack_dir_with_ref(self.get_data_dir('default'), compressed_file, self.data_dir)
+                            except ValueError:
+                                logger.warning("Reference dir '%s' changed, using uncompressed data", self.get_data_dir('default'))                                
         self.driver = self.new_driver(options, self.driver_options(options), self.driver_service(driver_manager))
         self.config_driver()
         self.wait = WebDriverWait(self.driver, options.wait_timeout)
@@ -71,9 +72,19 @@ class RemoteBrowser(ABC):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.driver.__exit__(exc_type, exc_val, exc_tb)
 
+    def is_locked(self):
+        """Check if the browser is locked"""
+        data_dir = self.data_dir
+        if data_dir is not None:
+            for filename in ('lockfile', 'parent.lock'):
+                if os.path.exists(os.path.join(data_dir, filename)):
+                    return True
+        return False
+
     def quit(self):
         """Quit the browser"""
         self.driver.quit()
+        self.wait.until_not(lambda _: self.is_locked())
         if self.options.data_dir is not None and self.options.compressed:
             if os.path.isdir(self.data_dir):
                 if os.path.isdir(self.get_data_dir('default')):
