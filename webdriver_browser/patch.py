@@ -15,11 +15,11 @@ def generate_dir_hash(directory: str):
         relroot = path.relpath(root, directory)
         for file in files:
             fullpath = path.join(root, file)
-            size = path.getsize(fullpath)
-            with open(fullpath, "rb") as f:
-                sha = hashlib.sha256(f.read()).hexdigest()
-            relpath = path.join(relroot, file)
-            hash_dict[relpath] = [sha, size]
+            if path.isfile(fullpath):
+                with open(fullpath, "rb") as f:
+                    sha = hashlib.sha256(f.read()).hexdigest()
+                relpath = path.join(relroot, file)
+                hash_dict[relpath] = sha
         for dir_ in dirs:
             relpath = path.join(relroot, dir_)
             hash_dict[relpath] = None

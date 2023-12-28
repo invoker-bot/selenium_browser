@@ -1,0 +1,22 @@
+{
+    "name": "Python 3.9",
+    "image": "mcr.microsoft.com/devcontainers/python:1-3.9-bullseye",
+	"features": {
+		"ghcr.io/devcontainers-contrib/features/tox:2": {}
+	},
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "terminal.integrated.shell.linux": "/bin/bash"
+            },
+            "extensions": [
+                "ms-python.python"
+            ]
+        }
+    },
+    "forwardPorts": [
+        8888
+    ],
+    "postCreateCommand": "pip install -e .",
+    "remoteUser": "root"
+}

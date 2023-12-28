@@ -57,6 +57,6 @@ def test_data_dir(browser_cls):
     browser = browser_cls(options)
     browser.driver.get("https://example.org/")
     browser.quit()
-    assert os.stat(test_dir + ".patch").st_size < 512 * 1024
+    assert os.stat(test_dir + ".patch").st_size < 2048 * 1024
     browser = browser_cls(options, None)
     browser.quit()

@@ -61,7 +61,8 @@ class RemoteBrowser(ABC):
                             try:
                                 unpack_dir_with_ref(self.get_data_dir('default'), compressed_file, self.data_dir)
                             except ValueError:
-                                logger.warning("Reference dir '%s' changed, using uncompressed data", self.get_data_dir('default'))                                
+                                logger.warning("Reference dir '%s' changed, using uncompressed data",
+                                               self.get_data_dir('default'))
         self.driver = self.new_driver(options, self.driver_options(options), self.driver_service(driver_manager))
         self.config_driver()
         self.wait = WebDriverWait(self.driver, options.wait_timeout)
@@ -76,7 +77,7 @@ class RemoteBrowser(ABC):
         """Check if the browser is locked"""
         data_dir = self.data_dir
         if data_dir is not None:
-            for filename in ('lockfile', 'parent.lock'):
+            for filename in ('lockfile', 'SingletonCookie', 'SingletonLock', 'parent.lock'):
                 if os.path.exists(os.path.join(data_dir, filename)):
                     return True
         return False
