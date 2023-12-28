@@ -3,7 +3,7 @@
 """Setup script for selenium_browser."""
 from setuptools import setup, find_packages
 
-__version__ = '0.1.0.dev2'
+__version__ = '0.1.0.dev3'
 
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
