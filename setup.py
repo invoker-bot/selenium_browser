@@ -44,6 +44,7 @@ setup(
     setup_requires=['pytest-runner >= 6.0.1'],
     tests_require=[
         'pytest >= 7.4.3',
+        'pytest-retry >= 1.5.0',
         'flake8 >= 6.1.0',
         'pylint >= 3.0.3',
         'mock >= 5.1.0',

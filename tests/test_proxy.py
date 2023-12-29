@@ -36,7 +36,7 @@ def valid_browsers():
     return [ChromeBrowser]
 
 
-@pytest.mark.xfail(reason="network is not available occasionally")
+# @pytest.mark.xfail(reason="network is not available occasionally")
 @pytest.mark.parametrize('browser_cls', valid_browsers())
 def test_proxy(proxy_server, browser_cls):  # pylint: disable=redefined-outer-name
     # print(f"Testing with proxy server at: {proxy_server}")

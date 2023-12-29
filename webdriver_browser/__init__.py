@@ -1,5 +1,6 @@
 """Selenium Browser"""
 import os
+import time
 import shutil
 import tempfile
 import logging
@@ -86,6 +87,7 @@ class RemoteBrowser(ABC):
         """Quit the browser"""
         self.driver.quit()
         self.wait.until_not(lambda _: self.is_locked())
+        time.sleep(3)
         if self.options.data_dir is not None and self.options.compressed:
             if os.path.isdir(self.data_dir):
                 if os.path.isdir(self.get_data_dir('default')):
