@@ -86,18 +86,19 @@ class RemoteBrowser(ABC):
     def quit(self):
         """Quit the browser"""
         self.driver.quit()
-        self.wait.until_not(lambda _: self.is_locked())
-        time.sleep(3)
-        if self.options.data_dir is not None and self.options.compressed:
-            if os.path.isdir(self.data_dir):
-                if os.path.isdir(self.get_data_dir('default')):
-                    compressed_file = self.get_data_dir(self.options.data_dir + ".patch")
-                    pack_dir_with_ref(self.get_data_dir('default'), compressed_file, self.data_dir)
+        if self.options.data_dir is not None:
+            self.wait.until_not(lambda _: self.is_locked())
+            time.sleep(3)
+            if self.options.compressed:
+                if os.path.isdir(self.data_dir):
+                    if os.path.isdir(self.get_data_dir('default')):
+                        compressed_file = self.get_data_dir(self.options.data_dir + ".patch")
+                        pack_dir_with_ref(self.get_data_dir('default'), compressed_file, self.data_dir)
+                    else:
+                        logger.warning("Default dir '%s' not found, removing data dir", self.get_data_dir('default'))
+                        shutil.rmtree(self.get_data_dir(self.options.data_dir))
                 else:
-                    logger.warning("Default dir '%s' not found, removing data dir", self.get_data_dir('default'))
-                    shutil.rmtree(self.get_data_dir(self.options.data_dir))
-            else:
-                logger.warning("Data dir '%s' not found", self.data_dir)
+                    logger.warning("Data dir '%s' not found", self.data_dir)
 
     @classmethod
     @abstractmethod
