@@ -4,12 +4,16 @@ import time
 import shutil
 import tempfile
 import logging
+from urllib.parse import urlparse, ParseResult
 from abc import ABC, abstractmethod
-from typing import Type
+from typing import Type, Any, Callable, Optional
 from dataclasses import dataclass
+from pyee import EventEmitter
+from tenacity import Retrying, stop_after_attempt, wait_random_exponential, after_log, before_log, retry_if_exception_type
 from requests.exceptions import RequestException
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.service import Service as DriverService
 from selenium.webdriver.common.options import ArgOptions as DriverOptions
@@ -199,3 +203,75 @@ class RemoteBrowser(ABC):
         """Data dir"""
         if self.options.data_dir is not None:
             self.clear_data_dir(self.options.data_dir)
+
+    @staticmethod
+    def normilize_url_result(url: str) -> ParseResult:
+        """Normilize url"""
+        result = urlparse(url)
+        if not result.path:
+            result.path = '/'
+        return result
+
+    def get_until(self, url: str, method: Callable[[webdriver.Remote], Any]):
+        """Get the url until the method is true"""
+        current_result = self.normilize_url_result(self.driver.current_url)
+        target_result = self.normilize_url_result(url)
+        if current_result.netloc != target_result.netloc or current_result.path != target_result.path or not method(self.driver):
+            self.driver.get(url)
+        self.wait.until(method)
+
+    def select(self, locator: tuple[str, str]):
+        """Select the element(radio or checkbox)"""
+        elem = self.wait.until(EC.presence_of_element_located(locator))
+        self.driver.execute_script("arguments[0].scrollIntoView();", elem)
+        elem = self.wait.until(EC.element_to_be_clickable(locator))
+        if not elem.is_selected():
+            elem.click()
+            self.wait.until(EC.element_to_be_selected(locator))
+
+    def input(self, locator: tuple[str, str], value: str):
+        """Input the element"""
+        elem = self.wait.until(EC.element_to_be_clickable(locator))
+        # self.driver.execute_script("arguments[0].scrollIntoView();", elem)
+        self.driver.execute_script("arguments[0].value = arguments[1];", elem, value)
+
+
+@dataclass
+class WebActionContext:
+    """Web action context"""
+    browser: RemoteBrowser
+    ee: EventEmitter
+    data: dict
+
+
+class WebAction:
+
+    def __init__(self, func: Callable[[WebActionContext, bool], Optional[bool]]):
+        self.func = func
+
+    def condition(self, context: WebActionContext) -> bool:  # whether to execute the action
+        try:
+            return self.func(context, True)
+        except (WebDriverException, TimeoutError) as e:
+            logger.debug("WebAction condition failed: %s", e)
+            return False
+
+    def __call__(self, context: WebActionContext, mock=False, retry=1) -> Optional[bool]:
+        if mock:
+            return self.condition(context)
+        retrying = Retrying(retry=retry_if_exception_type((WebDriverException, TimeoutError)),
+                            stop=stop_after_attempt(retry), wait=wait_random_exponential(multiplier=5, max=600, min=5), reraise=True,
+                            before=before_log(logger, logging.DEBUG), after=after_log(logger, logging.DEBUG))
+        return retrying(self.func, context, mock)
+
+
+class ChainWebAction(WebAction):
+
+    def __init__(self, *actions: WebAction, retry=1):
+        def chain_fn(context: WebActionContext, mock: bool) -> Optional[bool]:
+            for action in actions:
+                if mock:
+                    return action.condition(context)
+                elif action(context, mock, retry) is False:
+                    return False
+        super().__init__(chain_fn)
