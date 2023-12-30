@@ -12,6 +12,8 @@ selenium = "^4.16.0"
 selenium-wire = "^5.1.0"
 webdriver-manager = "^4.0.1"
 undetected-chromedriver = "^3.5.4"
+pyee = "^11.1.0"
+tenacity = "^8.2.3"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -22,6 +24,8 @@ mock = "^5.1.0"
 freezegun = "^1.4.0"
 pproxy = "^2.7.8"
 pytest-retry = "^1.5.0"
+pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -9,7 +9,7 @@ from abc import ABC, abstractmethod
 from typing import Type, Any, Callable, Optional
 from dataclasses import dataclass
 from pyee import EventEmitter
-from tenacity import Retrying, stop_after_attempt, wait_random_exponential, after_log, before_log, retry_if_exception_type
+from tenacity import Retrying, stop_after_attempt, wait_random_exponential, after_log, before_log, retry_if_exception_type, retry_if_result
 from requests.exceptions import RequestException
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
@@ -259,7 +259,7 @@ class WebAction:
     def __call__(self, context: WebActionContext, mock=False, retry=1) -> Optional[bool]:
         if mock:
             return self.condition(context)
-        retrying = Retrying(retry=retry_if_exception_type((WebDriverException, TimeoutError)),
+        retrying = Retrying(retry=retry_if_exception_type((WebDriverException, TimeoutError)) | retry_if_result(lambda r: r is False),
                             stop=stop_after_attempt(retry), wait=wait_random_exponential(multiplier=5, max=600, min=5), reraise=True,
                             before=before_log(logger, logging.DEBUG), after=after_log(logger, logging.DEBUG))
         return retrying(self.func, context, mock)
@@ -269,9 +269,18 @@ class ChainWebAction(WebAction):
 
     def __init__(self, *actions: WebAction, retry=1):
         def chain_fn(context: WebActionContext, mock: bool) -> Optional[bool]:
+            result = None
             for action in actions:
                 if mock:
                     return action.condition(context)
-                elif action(context, mock, retry) is False:
-                    return False
+                else:
+                    result = action(context, mock, retry)
+                    if result is False:
+                        return False
+            return result
         super().__init__(chain_fn)
+
+
+def web_action(func: Callable[[WebActionContext, bool], Optional[bool]]):
+    """Web action"""
+    return WebAction(func)
