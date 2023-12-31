@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "webdriver-browser"
-version = "0.1.0.dev3"
+version = "0.1.0.alpha1"
 description = "More convenient methods for creating multiple selenium browsers."
 authors = ["Invoker Bot <invoker-bot@outlook.com>"]
 license = "MIT"
@@ -8,13 +8,13 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.9"
+urllib3 = "^1.26.18"
 selenium = "^4.16.0"
 selenium-wire = "^5.1.0"
 webdriver-manager = "^4.0.1"
 undetected-chromedriver = "^3.5.4"
 pyee = "^11.1.0"
 tenacity = "^8.2.3"
-
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"

@@ -3,7 +3,7 @@
 """Setup script for selenium_browser."""
 from setuptools import setup, find_packages
 
-__version__ = '0.1.0.dev3'
+__version__ = '0.1.0.alpha1'
 
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
@@ -36,6 +36,7 @@ setup(
     ],
     python_requires='>=3.9',
     install_requires=[
+        'urllib3 ~= 1.26.18',
         'selenium >= 4.15.0',
         'selenium-wire >= 5.1.0',
         'webdriver_manager >= 3.4.0',
