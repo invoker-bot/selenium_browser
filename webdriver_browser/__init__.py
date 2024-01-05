@@ -249,7 +249,7 @@ class WebAction:
     def __init__(self, func: Callable[[WebActionContext, bool], Optional[bool]], name=None):
         self.func = func
         if name is None:
-            name = func.__name__
+            name = getattr(func, '__name__', str(func))
         self.name = name
 
     def condition(self, context: WebActionContext) -> bool:  # whether to execute the action
