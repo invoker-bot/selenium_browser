@@ -6,13 +6,16 @@ import tempfile
 import logging
 from urllib.parse import urlparse, ParseResult
 from abc import ABC, abstractmethod
-from typing import Type, Any, Callable, Optional
+from typing import Callable, Optional, Union, TypeVar
 from dataclasses import dataclass
+from functools import partial
 from pyee import EventEmitter
-from tenacity import Retrying, stop_after_attempt, wait_random_exponential, after_log, before_log, retry_if_exception_type, retry_if_result
+from tenacity import Retrying, stop_after_attempt, wait_random_exponential, after_log, before_log, retry_if_exception_type, retry_if_not_result
 from requests.exceptions import RequestException
-from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
+from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.common.service import Service as DriverService
@@ -21,6 +24,9 @@ from webdriver_manager.core.manager import DriverManager
 from .patch import pack_dir_with_ref, unpack_dir_with_ref
 
 
+D = TypeVar("D", bound=Union[WebDriver, WebElement])
+T = TypeVar("T")
+R = TypeVar("R")
 logger = logging.getLogger('selenium_browser')
 
 
@@ -36,11 +42,8 @@ class BrowserOptions:
     compressed: bool = False
 
 
-class RemoteBrowser(ABC):
+class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
     """Remote browser"""
-    options: BrowserOptions
-    driver: Type[webdriver.Remote]
-    wait: WebDriverWait
 
     def __init__(self, options: BrowserOptions = None, driver_manager: DriverManager = None):
         if options is None:
@@ -48,7 +51,7 @@ class RemoteBrowser(ABC):
         self.options = options
         if driver_manager is None:
             driver_manager = self.default_driver_manager()
-        if options.data_dir is not None:
+        if options.data_dir is not None:  # pylint: disable=too-many-nested-blocks
             self.make_root_data_dir()
             if options.compressed:
                 if not os.path.isdir(self.get_data_dir('default')):
@@ -116,7 +119,7 @@ class RemoteBrowser(ABC):
 
     @classmethod
     @abstractmethod
-    def new_driver(cls, options: BrowserOptions, driver_options: DriverOptions, service: DriverService) -> webdriver.Remote:
+    def new_driver(cls, options: BrowserOptions, driver_options: DriverOptions, service: DriverService) -> WebDriver:
         """Default driver"""
 
     @classmethod
@@ -212,28 +215,46 @@ class RemoteBrowser(ABC):
             result.path = '/'
         return result
 
-    def get_until(self, url: str, method: Callable[[webdriver.Remote], Any]):
+    def get_until(self, url: str, method: Callable[[D], T]) -> T:
         """Get the url until the method is true"""
         current_result = self.normilize_url_result(self.driver.current_url)
         target_result = self.normilize_url_result(url)
         if current_result.netloc != target_result.netloc or current_result.path != target_result.path or not method(self.driver):
             self.driver.get(url)
-        self.wait.until(method)
+        return self.wait.until(method)
+
+    def scroll_to_view(self, locator: tuple[str, str], force=False) -> WebElement:
+        """Scroll to the element"""
+        elem = self.wait.until(EC.presence_of_element_located(locator))
+        if force or not elem.is_displayed():
+            self.driver.execute_script("arguments[0].scrollIntoView();", elem)
+        return elem
 
     def select(self, locator: tuple[str, str]):
         """Select the element(radio or checkbox)"""
-        elem = self.wait.until(EC.presence_of_element_located(locator))
-        self.driver.execute_script("arguments[0].scrollIntoView();", elem)
-        elem = self.wait.until(EC.element_to_be_clickable(locator))
+        elem = self.scroll_to_view(locator, force=True)
+        elem = self.wait.until(EC.element_to_be_clickable(elem))
         if not elem.is_selected():
             elem.click()
             self.wait.until(EC.element_to_be_selected(locator))
 
-    def input(self, locator: tuple[str, str], value: str):
-        """Input the element"""
+    def click(self, locator: tuple[str, str]):
+        """Click the element"""
+        elem = self.scroll_to_view(locator)
+        elem = self.wait.until(EC.element_to_be_clickable(elem))
+        elem.click()
+
+    def input(self, locator: tuple[str, str], value: str, clear=False):
+        """Input some value to the element"""
         elem = self.wait.until(EC.element_to_be_clickable(locator))
-        # self.driver.execute_script("arguments[0].scrollIntoView();", elem)
-        self.driver.execute_script("arguments[0].value = arguments[1];", elem, value)
+        if clear:
+            length = len(elem.get_attribute('value'))
+            for _ in range(length):
+                elem.send_keys(Keys.BACKSPACE)
+                time.sleep(self.wait._poll)  # pylint: disable=protected-access
+            elem.send_keys(value)
+        else:
+            self.driver.execute_script("arguments[0].value = arguments[1];", elem, value)
 
 
 @dataclass
@@ -244,46 +265,99 @@ class WebActionContext:
     data: dict
 
 
-class WebAction:
+ActionCall = Callable[[WebActionContext, T], R]
+ConditionCall = Callable[[WebActionContext, None], T]
+MethodCall = Union[ActionCall, ConditionCall]
 
-    def __init__(self, func: Callable[[WebActionContext, bool], Optional[bool]], name=None):
-        self.func = func
+
+class WebAction:
+    """Web action"""
+
+    def __init__(self, fn: MethodCall, name=None):
+        self.fn = fn
         if name is None:
-            name = getattr(func, '__name__', str(func))
+            name = getattr(fn, '__name__', str(fn))
         self.name = name
 
-    def condition(self, context: WebActionContext) -> bool:  # whether to execute the action
-        try:
-            return self.func(context, True)
-        except (WebDriverException, TimeoutError) as e:
-            logger.debug("WebAction condition failed: %s", e)
-            return False
+    # whether the action is expected
+    def expected_condition(self, context: WebActionContext) -> Callable[[WebDriver], T]:
+        """Expected condition"""
+        return lambda _driver: self.fn(context, None)
 
-    def __call__(self, context: WebActionContext, mock=False, retry=1) -> Optional[bool]:
-        if mock:
-            return self.condition(context)
-        retrying = Retrying(retry=retry_if_exception_type((WebDriverException, TimeoutError)) | retry_if_result(lambda r: r is False),
+    def condition(self, context: WebActionContext, wait=False) -> T:  # whether to execute the action
+        """Condition"""
+        if wait:
+            return context.browser.wait.until(self.expected_condition(context))
+        return self.fn(context, None)
+
+    def condition_noexcept(self, context: WebActionContext, wait=False) -> Optional[T]:
+        """Condition no exception"""
+        try:
+            return self.condition(context, wait)
+        except (WebDriverException, TimeoutError):
+            return None
+
+    def __call__(self, context: WebActionContext, wait=False, retry=1) -> tuple[T, Callable[[T], R]]:
+        condition = self.condition(context, wait)
+        retrying = Retrying(retry=(retry_if_exception_type((WebDriverException, TimeoutError)) | retry_if_not_result(lambda r: r)) &  # noqa: W504
+                            (lambda _: self.condition_noexcept(context, wait)),
                             stop=stop_after_attempt(retry), wait=wait_random_exponential(multiplier=5, max=600, min=5), reraise=True,
                             before=before_log(logger, logging.DEBUG), after=after_log(logger, logging.DEBUG))
-        return retrying(self.func, context, mock)
+        return condition, partial(retrying, self.fn, context)
 
 
 class ChainWebAction(WebAction):
+    """Chain web action"""
+    def __init__(self, *actions: WebAction, name=None, retry=1, reentry=False):
+        assert len(actions) > 0, "At least one action"
+        if name is None:
+            name = f'chain({", ".join(action.name for action in actions)})'
 
-    def __init__(self, *actions: WebAction, retry=1):
-        def chain_fn(context: WebActionContext, mock: bool) -> Optional[bool]:
-            result = None
-            for action in actions:
-                if mock:
-                    return action.condition(context)
+        def fn(context: WebActionContext, condition: Optional[tuple[int, T]]) -> Optional[R]:
+            if condition:  # pylint: disable=no-else-return
+                idx, c = condition
+                assert not (reentry and idx > 0), "Reentry is not allowed"
+                result = None
+                for action in actions[idx:]:
+                    c, a = action(context, wait=True, retry=retry)
+                    result = a(c)
+                    if not (c and result):
+                        return None
+                    time.sleep(5)
+                return result
+            else:
+                if reentry:
+                    for idx, action in enumerate(actions):
+                        c = action.condition_noexcept(context, wait=False)
+                        if c:
+                            return idx, c
                 else:
-                    result = action(context, mock, retry)
-                    if result is False:
-                        return False
-            return result
-        super().__init__(chain_fn)
+                    c = actions[0].condition(context, wait=False)
+                return (0, c) if c else None
+        super().__init__(fn, name)
 
 
-def web_action(func: Callable[[WebActionContext, bool], Optional[bool]]):
+class SwitchWebAction(WebAction):
+    """Switch web action"""
+    def __init__(self, *actions: WebAction, name=None, retry=1):
+        assert len(actions) > 0, "At least one action"
+        if name is None:
+            name = f'switch({", ".join(action.name for action in actions)})'
+
+        def fn(context: WebActionContext, condition: Optional[tuple[int, T]]) -> Optional[R]:
+            if condition:  # pylint: disable=no-else-return
+                idx, c = condition
+                c, a = actions[idx](context, wait=True, retry=retry)
+                return a(c)
+            else:
+                for idx, action in enumerate(actions):
+                    c = action.condition_noexcept(context, wait=False)
+                    if c:
+                        return idx, c
+                return None
+        super().__init__(fn, name)
+
+
+def web_action(fn: MethodCall, name=None):
     """Web action"""
-    return WebAction(func)
+    return WebAction(fn, name=name)
