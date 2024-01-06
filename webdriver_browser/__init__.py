@@ -4,6 +4,7 @@ import time
 import shutil
 import tempfile
 import logging
+from contextlib import suppress
 from urllib.parse import urlparse, ParseResult
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Union, TypeVar
@@ -92,7 +93,8 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
 
     def quit(self):
         """Quit the browser"""
-        self.driver.quit()
+        with suppress(WebDriverException):
+            self.driver.quit()
         if self.options.data_dir is not None:
             self.wait.until_not(lambda _: self.is_locked())
             time.sleep(3)
@@ -186,7 +188,7 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
         """Clear data"""
         data_dir = cls.get_data_dir(name)
         if os.path.isdir(data_dir):
-            shutil.rmtree(data_dir)
+            shutil.rmtree(data_dir, ignore_errors=True)
         if os.path.isfile(data_dir + ".patch"):
             os.remove(data_dir + ".patch")
 
