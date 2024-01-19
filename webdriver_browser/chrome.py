@@ -1,5 +1,6 @@
 """ChromeDriver instance"""""
 import os
+import shutil
 from selenium import webdriver
 import undetected_chromedriver as uc
 import seleniumwire.undetected_chromedriver as wire_uc
@@ -49,15 +50,19 @@ class ChromeBrowser(RemoteBrowser):
     @classmethod
     def driver_service(cls, driver_manager):
         """Driver service"""
-        return webdriver.ChromeService(driver_manager.install())
+        return None  # webdriver.ChromeService(driver_manager.install())
 
     @classmethod
     def new_driver(cls, options, driver_options, service):
         """Default driver"""
+        user_data_dir = None
+        if options.data_dir is None:  # should set tmp
+            user_data_dir = cls.get_data_dir('.tmp')
+            shutil.rmtree(user_data_dir, ignore_errors=True)
         if cls.use_seleniumwire(options):
-            return wire_uc.Chrome(options=driver_options, service=service,
+            return wire_uc.Chrome(options=driver_options, user_data_dir=user_data_dir,
                                   seleniumwire_options=cls.default_seleniumwire_config(options))
-        return uc.Chrome(options=driver_options, service=service)
+        return uc.Chrome(options=driver_options, user_data_dir=user_data_dir)
 
     @classmethod
     def default_driver_manager(cls):
