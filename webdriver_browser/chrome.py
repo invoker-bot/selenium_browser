@@ -57,7 +57,7 @@ class ChromeBrowser(RemoteBrowser):
         """Default driver"""
         user_data_dir = None
         if options.data_dir is None:  # should set tmp
-            user_data_dir = cls.get_data_dir('.tmp')
+            options.data_dir = user_data_dir = cls.get_data_dir('.tmp')
             shutil.rmtree(user_data_dir, ignore_errors=True)
         if cls.use_seleniumwire(options):
             return wire_uc.Chrome(options=driver_options, user_data_dir=user_data_dir,

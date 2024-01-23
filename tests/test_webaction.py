@@ -1,6 +1,7 @@
 import pytest
 from selenium.common.exceptions import NoSuchElementException
 from webdriver_browser import ChainWebAction, SwitchWebAction, web_action, WebActionContext
+from webdriver_browser.chrome import ChromeBrowser, BrowserOptions
 
 
 class UnknownException(Exception):
@@ -55,3 +56,10 @@ def test_switch_web_action(mocker):
         assert a(c)
         assert m2.call_count == 4
         assert m3.call_count == 2
+
+
+def test_tmp_chrome():
+    for _ in range(8):
+        chrome_options = BrowserOptions(headless=True)
+        chrome = ChromeBrowser(chrome_options)
+        chrome.quit()
