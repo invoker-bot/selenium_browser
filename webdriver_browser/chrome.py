@@ -51,7 +51,12 @@ class ChromeBrowser(RemoteBrowser):
     @classmethod
     def driver_service(cls, driver_manager):
         """Driver service"""
-        return None  # webdriver.ChromeService(driver_manager.install())
+        return None if cls.use_undetected_driver() else webdriver.ChromeService(driver_manager.install())
+
+    @classmethod
+    def use_undetected_driver(cls):
+        """Undetected driver"""
+        return os.getenv('UNDETECTED_CHROME_DRIVER', 'true').lower() not in ('false', '0', 'off', 'no', '')
 
     @classmethod
     def new_driver(cls, options, driver_options, service):
@@ -59,8 +64,7 @@ class ChromeBrowser(RemoteBrowser):
         set UNDETECTED_CHROME_DRIVER=false will not use undetected_chromedriver
         """
         user_data_dir = None
-        undetected = os.getenv('UNDETECTED_CHROME_DRIVER', 'true').lower() not in ('false', '0', 'off', 'no', '')
-        if undetected:
+        if cls.use_undetected_driver():
             if options.data_dir is None:  # should set tmp
                 options.data_dir = user_data_dir = cls.get_data_dir('.tmp')
                 shutil.rmtree(user_data_dir, ignore_errors=True)
@@ -71,7 +75,6 @@ class ChromeBrowser(RemoteBrowser):
         if cls.use_seleniumwire(options):
             return wire_webdriver.Chrome(options=driver_options, seleniumwire_options=cls.default_seleniumwire_config(options), service=service)
         return webdriver.Chrome(options=driver_options, service=service)
-
 
     @classmethod
     def default_driver_manager(cls):
