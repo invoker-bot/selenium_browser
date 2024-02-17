@@ -3,6 +3,7 @@ import os
 import shutil
 from selenium import webdriver
 import undetected_chromedriver as uc
+import seleniumwire.webdriver as wire_webdriver
 import seleniumwire.undetected_chromedriver as wire_uc
 from webdriver_manager.chrome import ChromeDriverManager
 from . import RemoteBrowser, BrowserOptions
@@ -54,15 +55,23 @@ class ChromeBrowser(RemoteBrowser):
 
     @classmethod
     def new_driver(cls, options, driver_options, service):
-        """Default driver"""
+        """Default driver
+        set UNDETECTED_CHROME_DRIVER=false will not use undetected_chromedriver
+        """
         user_data_dir = None
-        if options.data_dir is None:  # should set tmp
-            options.data_dir = user_data_dir = cls.get_data_dir('.tmp')
-            shutil.rmtree(user_data_dir, ignore_errors=True)
+        undetected = os.getenv('UNDETECTED_CHROME_DRIVER', 'true').lower() not in ('false', '0', 'off', 'no', '')
+        if undetected:
+            if options.data_dir is None:  # should set tmp
+                options.data_dir = user_data_dir = cls.get_data_dir('.tmp')
+                shutil.rmtree(user_data_dir, ignore_errors=True)
+            if cls.use_seleniumwire(options):
+                return wire_uc.Chrome(options=driver_options, user_data_dir=user_data_dir,
+                                      seleniumwire_options=cls.default_seleniumwire_config(options))
+            return uc.Chrome(options=driver_options, user_data_dir=user_data_dir)
         if cls.use_seleniumwire(options):
-            return wire_uc.Chrome(options=driver_options, user_data_dir=user_data_dir,
-                                  seleniumwire_options=cls.default_seleniumwire_config(options))
-        return uc.Chrome(options=driver_options, user_data_dir=user_data_dir)
+            return wire_webdriver.Chrome(options=driver_options, seleniumwire_options=cls.default_seleniumwire_config(options), service=service)
+        return webdriver.Chrome(options=driver_options, service=service)
+
 
     @classmethod
     def default_driver_manager(cls):
