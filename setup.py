@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Setup script for selenium_browser."""
+"""Setup script for selenium_browser(Deprecated)."""
 from setuptools import setup, find_packages
 
-__version__ = '0.1.4.post1'
+__version__ = '0.1.5'
 
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
@@ -34,8 +34,9 @@ setup(
         'Operating System :: OS Independent',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    python_requires='>=3.9',
+    python_requires='>=3.10',
     install_requires=[
+        'psutil >= 5.9.8',
         'urllib3 ~= 1.26.18',
         'selenium >= 4.15.0',
         'selenium-wire >= 5.1.0',

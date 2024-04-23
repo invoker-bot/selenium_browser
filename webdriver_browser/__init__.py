@@ -10,6 +10,7 @@ from abc import ABC, abstractmethod
 from typing import Callable, Optional, Union, TypeVar
 from dataclasses import dataclass
 from functools import partial
+import psutil
 from pyee import EventEmitter
 from tenacity import Retrying, stop_after_attempt, wait_random_exponential, after_log, before_log, retry_if_exception_type, retry_if_not_result
 from requests.exceptions import RequestException
@@ -41,6 +42,7 @@ class BrowserOptions:
     force_selenium_wire: bool = False
     wait_timeout: float = 15.0
     compressed: bool = False
+    singleton: bool = False
 
 
 class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
@@ -50,6 +52,8 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
         if options is None:
             options = BrowserOptions()
         self.options = options
+        if options.singleton:
+            self.kill_all_browser()
         if driver_manager is None:
             driver_manager = self.default_driver_manager()
         if options.data_dir is not None:  # pylint: disable=too-many-nested-blocks
@@ -133,6 +137,19 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
     def use_seleniumwire(cls, options: BrowserOptions):
         """Use seleniumwire or not"""
         return options.force_selenium_wire or (options.proxy_server is not None and options.proxy_server.find('@') != -1)
+
+    @staticmethod
+    def kill_all_browser():
+        """Kill all browsers"""
+        browser_names = {'msedge', 'chrome', 'firefox', 'firefox-bin'}
+        for proc in psutil.process_iter(['pid', 'name']):
+            proc_name = proc.info['name'].split('.')[0].lower()
+            if proc_name in browser_names:
+                try:
+                    process = psutil.Process(proc.info['pid'])
+                    process.terminate()
+                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                    logger.warning("zombie process: %s(%s)", proc_name, proc.info['pid'])
 
     @classmethod
     def default_seleniumwire_config(cls, options: BrowserOptions):
