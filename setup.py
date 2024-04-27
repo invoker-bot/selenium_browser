@@ -3,7 +3,7 @@
 """Setup script for selenium_browser(Deprecated)."""
 from setuptools import setup, find_packages
 
-__version__ = '0.1.5'
+__version__ = '0.1.6'
 
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
@@ -41,9 +41,10 @@ setup(
         'selenium >= 4.15.0',
         'selenium-wire >= 5.1.0',
         'webdriver_manager >= 3.4.0',
-        'undetected-chromedriver >= 3.5.0',
+        'undetected-chromedriver >= 3.5.5',
         'tenacity >= 8.2.3',
         'pyee >= 11.1.0',
+        'requestium >= 0.4.0',
     ],
     setup_requires=['pytest-runner >= 6.0.1'],
     tests_require=[

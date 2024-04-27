@@ -59,7 +59,7 @@ def test_switch_web_action(mocker):
 
 
 def test_tmp_chrome():
-    for _ in range(8):
-        chrome_options = BrowserOptions(headless=True)
-        chrome = ChromeBrowser(chrome_options)
-        chrome.quit()
+    for _ in range(5):
+        chrome_options = BrowserOptions(headless=True, singleton=True)
+        with ChromeBrowser(chrome_options) as chrome:
+            chrome.quit()

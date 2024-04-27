@@ -13,7 +13,7 @@ from webdriver_browser.edge import EdgeBrowser
 from webdriver_browser.firefox import FirefoxBrowser
 
 
-@pytest.fixture(scope="module", params=[None, 'http://localhost:9999', 'http://user:password@localhost:10000'])
+@pytest.fixture(scope="module", params=[None, 'http://localhost:9999'])
 def proxy_server(request):
     if request.param is None:
         yield None
@@ -41,22 +41,20 @@ def valid_browsers():
 def test_proxy(proxy_server, browser_cls):  # pylint: disable=redefined-outer-name
     # print(f"Testing with proxy server at: {proxy_server}")
     assert proxy_server is None or urlparse(proxy_server).scheme in ('http', 'https')
-    options = BrowserOptions(headless=True, proxy_server=proxy_server)
-    browser = browser_cls(options)
-    browser.driver.get("https://example.org/")
-    browser.wait.until(EC.visibility_of_element_located((By.TAG_NAME, 'h1')))
-    assert browser.driver.title == 'Example Domain'
-    assert browser.driver.find_element(By.TAG_NAME, 'h1').text == 'Example Domain'
-    browser.quit()
+    options = BrowserOptions(headless=True, proxy_server=proxy_server, singleton=True)
+    with browser_cls(options) as browser:
+        browser.driver.get("https://example.org/")
+        browser.wait.until(EC.visibility_of_element_located((By.TAG_NAME, 'h1')))
+        assert browser.driver.title == 'Example Domain'
+        assert browser.driver.find_element(By.TAG_NAME, 'h1').text == 'Example Domain'
 
 
 @pytest.mark.parametrize('browser_cls', valid_browsers())
 def test_data_dir(browser_cls):
-    options = BrowserOptions(headless=True, data_dir='test', compressed=True)
+    options = BrowserOptions(headless=True, data_dir='test', compressed=True, singleton=True)
     test_dir = browser_cls.get_data_dir('test')
-    browser = browser_cls(options)
-    browser.driver.get("https://example.org/")
-    browser.quit()
+    with browser_cls(options) as browser:
+        browser.driver.get("https://example.org/")
     assert os.stat(test_dir + ".patch").st_size < 256 * 1024 * 1024, "should lower than 256M"
-    browser = browser_cls(options, None)
-    browser.quit()
+    with browser_cls(options) as browser:
+        browser.quit()

@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from functools import partial
 import psutil
 from pyee import EventEmitter
+import requestium
 from tenacity import Retrying, stop_after_attempt, wait_random_exponential, after_log, before_log, retry_if_exception_type, retry_if_not_result
 from requests.exceptions import RequestException
 from selenium.common.exceptions import WebDriverException
@@ -43,6 +44,7 @@ class BrowserOptions:
     wait_timeout: float = 15.0
     compressed: bool = False
     singleton: bool = False
+    undetected_chrome_driver: bool = None
 
 
 class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
@@ -62,7 +64,7 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
                 if not os.path.isdir(self.get_data_dir('default')):
                     default_options = BrowserOptions(data_dir='default', headless=True, compressed=False)
                     default_driver = self.new_driver(default_options, self.driver_options(
-                        default_options), self.driver_service(driver_manager))
+                        default_options), self.driver_service(options, driver_manager))
                     default_driver.quit()
                 if not os.path.isdir(self.get_data_dir('default')):
                     options.compressed = False
@@ -76,15 +78,20 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
                             except ValueError:
                                 logger.warning("Reference dir '%s' changed, using uncompressed data",
                                                self.get_data_dir('default'))
-        self.driver = self.new_driver(options, self.driver_options(options), self.driver_service(driver_manager))
+        self.driver = self.new_driver(options, self.driver_options(options), self.driver_service(options, driver_manager))
         self.config_driver()
+        self.session = requestium.Session(driver=self.driver)
         self.wait = WebDriverWait(self.driver, options.wait_timeout)
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.driver.__exit__(exc_type, exc_val, exc_tb)
+        # self.driver.__exit__(exc_type, exc_val, exc_tb)
+        self.quit()
+
+    def __del__(self):
+        pass
 
     def is_locked(self):
         """Check if the browser is locked"""
@@ -120,7 +127,7 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
 
     @classmethod
     @abstractmethod
-    def driver_service(cls, driver_manager) -> DriverService:
+    def driver_service(cls, options: BrowserOptions, driver_manager) -> DriverService:
         """Driver service"""
 
     @classmethod

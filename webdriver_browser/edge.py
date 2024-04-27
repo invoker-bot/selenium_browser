@@ -14,7 +14,7 @@ class EdgeBrowser(ChromeBrowser):
         return cls.config_driver_options(options, driver_options)
 
     @classmethod
-    def driver_service(cls, driver_manager):
+    def driver_service(cls, options, driver_manager):
         """Driver service"""
         return webdriver.EdgeService(driver_manager.install())
 

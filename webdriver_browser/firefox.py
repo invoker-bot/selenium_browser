@@ -37,7 +37,7 @@ class FirefoxBrowser(RemoteBrowser):
         return driver_options
 
     @classmethod
-    def driver_service(cls, driver_manager):
+    def driver_service(cls, options, driver_manager):
         """Driver service"""
         return webdriver.FirefoxService(driver_manager.install())
 
