@@ -9,6 +9,7 @@ from . import RemoteBrowser
 
 class FirefoxBrowser(RemoteBrowser):
     """Firefox browser"""
+    browser_names = {'firefox', 'mozilla', 'ff'}
 
     @classmethod
     def driver_options(cls, options):

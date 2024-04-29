@@ -49,6 +49,7 @@ class BrowserOptions:
 
 class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
     """Remote browser"""
+    browser_names = {'msedge', 'chrome', 'firefox', 'firefox-bin'}
 
     def __init__(self, options: BrowserOptions = None, driver_manager: DriverManager = None):
         if options is None:
@@ -145,13 +146,12 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
         """Use seleniumwire or not"""
         return options.force_selenium_wire or (options.proxy_server is not None and options.proxy_server.find('@') != -1)
 
-    @staticmethod
-    def kill_all_browser():
+    @classmethod
+    def kill_all_browser(cls):
         """Kill all browsers"""
-        browser_names = {'msedge', 'chrome', 'firefox', 'firefox-bin'}
         for proc in psutil.process_iter(['pid', 'name']):
             proc_name = proc.info['name'].split('.')[0].lower()
-            if proc_name in browser_names:
+            if proc_name in cls.browser_names:
                 try:
                     process = psutil.Process(proc.info['pid'])
                     process.terminate()

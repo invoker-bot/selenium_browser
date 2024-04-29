@@ -11,6 +11,7 @@ from . import RemoteBrowser, BrowserOptions
 
 class ChromeBrowser(RemoteBrowser):
     """Chrome browser"""
+    browser_names = {'chrome', 'googlechrome', 'google-chrome', 'gc'}
 
     @classmethod
     def config_driver_options(cls, options: BrowserOptions, driver_options: webdriver.ChromeOptions):

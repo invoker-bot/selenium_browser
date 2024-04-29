@@ -7,6 +7,7 @@ from .chrome import ChromeBrowser
 
 class EdgeBrowser(ChromeBrowser):
     """Edge browser"""
+    browser_names = {'edge', 'msedge', 'microsoftedge', 'ms-edge', 'microsoft-edge'}
 
     @classmethod
     def driver_options(cls, options):

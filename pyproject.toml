@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "webdriver-browser"
-version = "0.1.6"
+version = "0.1.6.post1"
 description = "More convenient methods for creating multiple selenium browsers."
 authors = ["Invoker Bot <invoker-bot@outlook.com>"]
 license = "MIT"

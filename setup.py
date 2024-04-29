@@ -3,7 +3,7 @@
 """Setup script for selenium_browser(Deprecated)."""
 from setuptools import setup, find_packages
 
-__version__ = '0.1.6'
+__version__ = '0.1.6.post1'
 
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
