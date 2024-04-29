@@ -44,6 +44,7 @@ class BrowserOptions:
     wait_timeout: float = 15.0
     compressed: bool = False
     singleton: bool = False
+    disable_image: bool = False
     undetected_chrome_driver: bool = None
 
 

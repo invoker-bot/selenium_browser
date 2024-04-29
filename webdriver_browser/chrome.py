@@ -20,6 +20,8 @@ class ChromeBrowser(RemoteBrowser):
         driver_options.add_argument("--no-first-run")
         driver_options.add_argument("--disable-notifications")
         driver_options.add_argument("--ignore-certificate-errors")
+        if options.disable_image:
+            driver_options.add_argument('--blink-settings=imagesEnabled=false')
         if options.headless:
             driver_options.add_argument("--headless")
             driver_options.add_argument("--no-sandbox")
