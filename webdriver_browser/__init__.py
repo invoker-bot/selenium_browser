@@ -45,6 +45,7 @@ class BrowserOptions:
     compressed: bool = False
     singleton: bool = False
     disable_image: bool = False
+    use_multi_procs: bool = False
     undetected_chrome_driver: bool = None
 
 
