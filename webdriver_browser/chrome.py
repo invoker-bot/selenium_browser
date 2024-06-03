@@ -23,8 +23,11 @@ class ChromeBrowser(RemoteBrowser):
         if options.disable_image:
             driver_options.add_argument('--blink-settings=imagesEnabled=false')
         if options.headless:
-            driver_options.add_argument("--headless")
-            driver_options.add_argument("--no-sandbox")
+            if options.extensions_dirs is not None:
+                driver_options.add_argument("--headless=new")
+            else:
+                driver_options.add_argument("--headless")
+            # driver_options.add_argument("--no-sandbox")
             driver_options.add_argument("--disable-dev-shm-usage")
             driver_options.add_argument("--disable-gpu")
         if options.data_dir is not None:
@@ -75,11 +78,18 @@ class ChromeBrowser(RemoteBrowser):
                 shutil.rmtree(user_data_dir, ignore_errors=True)
             if cls.use_seleniumwire(options):
                 return wire_uc.Chrome(options=driver_options, user_data_dir=user_data_dir,
-                                      seleniumwire_options=cls.default_seleniumwire_config(options), user_multi_procs=options.use_multi_procs)
-            return uc.Chrome(options=driver_options, user_data_dir=user_data_dir, user_multi_procs=options.use_multi_procs)
+                                      seleniumwire_options=cls.default_seleniumwire_config(options), 
+                                      no_sandbox=False, user_multi_procs=options.use_multi_procs)
+            return uc.Chrome(options=driver_options, user_data_dir=user_data_dir,
+                             no_sandbox=False, user_multi_procs=options.use_multi_procs)
         if cls.use_seleniumwire(options):
             return wire_webdriver.Chrome(options=driver_options, seleniumwire_options=cls.default_seleniumwire_config(options), service=service)
         return webdriver.Chrome(options=driver_options, service=service)
+
+    def quit(self):
+        if self.use_undetected_driver(self.options) and os.name == 'nt':
+            os.system(f"taskkill /F /T /PID {self.driver.browser_pid} >NUL")
+        super().quit()
 
     @classmethod
     def default_driver_manager(cls):
