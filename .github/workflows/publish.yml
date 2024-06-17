@@ -45,6 +45,7 @@ jobs:
           BROWSER: ${{ matrix.browser }}
       
       - name: Build package
+        if: matrix.browser == 'chrome'
         run: |
           pip install --upgrade build
           python -m build
