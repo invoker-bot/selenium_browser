@@ -78,7 +78,7 @@ class ChromeBrowser(RemoteBrowser):
                 shutil.rmtree(user_data_dir, ignore_errors=True)
             if cls.use_seleniumwire(options):
                 return wire_uc.Chrome(options=driver_options, user_data_dir=user_data_dir,
-                                      seleniumwire_options=cls.default_seleniumwire_config(options), 
+                                      seleniumwire_options=cls.default_seleniumwire_config(options),
                                       no_sandbox=False, user_multi_procs=options.use_multi_procs)
             return uc.Chrome(options=driver_options, user_data_dir=user_data_dir,
                              no_sandbox=False, user_multi_procs=options.use_multi_procs)
