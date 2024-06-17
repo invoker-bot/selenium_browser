@@ -1,34 +1,11 @@
-[tool.poetry]
-name = "webdriver-browser"
-version = "0.1.6.post1"
-description = "More convenient methods for creating multiple selenium browsers."
-authors = ["Invoker Bot <invoker-bot@outlook.com>"]
-license = "MIT"
-readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.9"
-urllib3 = "^1.26.18"
-selenium = "^4.16.0"
-selenium-wire = "^5.1.0"
-webdriver-manager = "^4.0.1"
-undetected-chromedriver = "^3.5.5"
-pyee = "^11.1.0"
-tenacity = "^8.2.3"
-psutil = "^5.9.8"
-requestium = "^0.4.0"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.3"
-flake8 = "^6.1.0"
-pylint = "^3.0.3"
-mock = "^5.1.0"
-freezegun = "^1.4.0"
-pproxy = "^2.7.8"
-pytest-retry = "^1.5.0"
-pytest-cov = "^4.1.0"
-pytest-mock = "^3.12.0"
-
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ['setuptools>=42']
+build-backend = 'setuptools.build_meta'
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version = '0.1.6.post1'
+tag_format = "v$version"
+
+[tool.commitizen.version_files]
+"setup.py" = { search = "__version__ = '", replace = "__version__ = '" }
