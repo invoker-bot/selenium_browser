@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Setup script for selenium_browser(Deprecated)."""
+"""Setup script for selenium_browser."""
 from setuptools import setup, find_packages
 
 __version__ = '0.1.6.post1'

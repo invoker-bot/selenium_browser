@@ -83,7 +83,10 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
                                                self.get_data_dir('default'))
         self.driver = self.new_driver(options, self.driver_options(options), self.driver_service(options, driver_manager))
         self.config_driver()
-        self.session = requestium.Session(driver=self.driver)
+        self.session = requestium.Session(driver=self.driver, headless=options.headless, default_timeout=options.wait_timeout)
+        self.session.copy_user_agent_from_driver()
+        if options.proxy_server is not None:
+            self.session.proxies = {'http': options.proxy_server, 'https': options.proxy_server}
         self.wait = WebDriverWait(self.driver, options.wait_timeout)
 
     def __enter__(self):
