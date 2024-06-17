@@ -45,7 +45,7 @@ jobs:
           BROWSER: ${{ matrix.browser }}
 
       - name: Publish package to TestPyPI
-        if: startsWith(github.ref, 'refs/tags/') && matrix.browser == 'chrome'
+        if: matrix.browser == 'chrome'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
             user: invoker
