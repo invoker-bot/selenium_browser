@@ -76,12 +76,25 @@ class ChromeBrowser(RemoteBrowser):
             if options.data_dir is None:  # should set tmp
                 options.data_dir = user_data_dir = cls.get_data_dir('.tmp')
                 shutil.rmtree(user_data_dir, ignore_errors=True)
+            chrome_driver_manager = cls.default_driver_manager()
+            #  driver_executable_path = chrome_driver_manager.install()
+            version = chrome_driver_manager.driver.get_browser_version_from_os()
+            if isinstance(version, str) and len(version) > 0:
+                version_main = int(version.split('.')[0])
+            else:
+                version_main = None
+            params = {
+                'options': driver_options,
+                'user_data_dir': user_data_dir,
+                'no_sandbox': False,
+                'user_multi_procs': options.use_multi_procs,
+                'version_main': version_main,
+                # 'driver_executable_path': driver_executable_path,
+            }
             if cls.use_seleniumwire(options):
-                return wire_uc.Chrome(options=driver_options, user_data_dir=user_data_dir,
-                                      seleniumwire_options=cls.default_seleniumwire_config(options),
-                                      no_sandbox=False, user_multi_procs=options.use_multi_procs)
-            return uc.Chrome(options=driver_options, user_data_dir=user_data_dir,
-                             no_sandbox=False, user_multi_procs=options.use_multi_procs)
+                return wire_uc.Chrome(seleniumwire_options=cls.default_seleniumwire_config(options),
+                                      **params)
+            return uc.Chrome(**params)
         if cls.use_seleniumwire(options):
             return wire_webdriver.Chrome(options=driver_options, seleniumwire_options=cls.default_seleniumwire_config(options), service=service)
         return webdriver.Chrome(options=driver_options, service=service)

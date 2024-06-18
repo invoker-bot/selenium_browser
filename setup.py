@@ -40,7 +40,7 @@ setup(
         'urllib3 ~= 1.26.18',
         'selenium >= 4.15.0',
         'selenium-wire >= 5.1.0',
-        'webdriver_manager >= 3.4.0',
+        'webdriver_manager >= 4.0.1',
         'undetected-chromedriver >= 3.5.5',
         'tenacity >= 8.2.3',
         'pyee >= 11.1.0',
