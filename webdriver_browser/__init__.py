@@ -110,7 +110,7 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
 
     def quit(self):
         """Quit the browser"""
-        with suppress(WebDriverException):
+        with suppress(WebDriverException, ConnectionResetError):
             self.driver.quit()
         if self.options.data_dir is not None:
             self.wait.until_not(lambda _: self.is_locked())
@@ -133,7 +133,7 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
 
     @classmethod
     @abstractmethod
-    def driver_service(cls, options: BrowserOptions, driver_manager) -> DriverService:
+    def driver_service(cls, options: BrowserOptions, driver_manager: DriverManager) -> DriverService:
         """Driver service"""
 
     @classmethod
