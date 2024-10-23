@@ -5,6 +5,7 @@ from selenium import webdriver
 import undetected_chromedriver as uc
 import seleniumwire.webdriver as wire_webdriver
 import seleniumwire.undetected_chromedriver as wire_uc
+from undetected_chromedriver.patcher import Patcher
 from webdriver_manager.chrome import ChromeDriverManager
 from . import RemoteBrowser, BrowserOptions
 
@@ -79,6 +80,9 @@ class ChromeBrowser(RemoteBrowser):
             chrome_driver_manager = cls.default_driver_manager()
             #  driver_executable_path = chrome_driver_manager.install()
             version = chrome_driver_manager.driver.get_browser_version_from_os()
+            driver_executable_path = os.path.join(
+                Patcher.data_path, f'chromedriver_{version}.exe'
+            )
             if isinstance(version, str) and len(version) > 0:
                 version_main = int(version.split('.')[0])
             else:
@@ -89,12 +93,16 @@ class ChromeBrowser(RemoteBrowser):
                 'no_sandbox': False,
                 'user_multi_procs': options.use_multi_procs,
                 'version_main': version_main,
-                # 'driver_executable_path': driver_executable_path,
+                'driver_executable_path': driver_executable_path if os.path.exists(driver_executable_path) else None,
             }
             if cls.use_seleniumwire(options):
-                return wire_uc.Chrome(seleniumwire_options=cls.default_seleniumwire_config(options),
-                                      **params)
-            return uc.Chrome(**params)
+                chrome = wire_uc.Chrome(seleniumwire_options=cls.default_seleniumwire_config(options),
+                                        **params)
+            else:
+                chrome = uc.Chrome(**params)
+            if not os.path.isfile(driver_executable_path):
+                shutil.copyfile(chrome.patcher.executable_path, driver_executable_path)
+            return chrome
         if cls.use_seleniumwire(options):
             return wire_webdriver.Chrome(options=driver_options, seleniumwire_options=cls.default_seleniumwire_config(options), service=service)
         return webdriver.Chrome(options=driver_options, service=service)
