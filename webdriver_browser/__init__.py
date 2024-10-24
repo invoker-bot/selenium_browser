@@ -34,6 +34,22 @@ R = TypeVar("R")
 logger = logging.getLogger('selenium_browser')
 
 
+class RetryingException(Exception):
+    """Retry exception"""
+
+
+default_stop_condition = stop_after_attempt(3)
+default_wait_action = wait_random_exponential(max=30)
+default_retry_condition = retry_if_exception_type(
+    (WebDriverException, RequestException, TimeoutError, RetryingException))
+before_log_action = before_log(logger, logging.DEBUG)
+after_log_action = after_log(logger, logging.DEBUG)
+retry = partial(_retry, stop=default_stop_condition, wait=default_wait_action, retry=default_retry_condition,
+                before=before_log_action, after=after_log_action)
+Retrying = partial(_Retrying, stop=default_stop_condition, wait=default_wait_action, retry=default_retry_condition,
+                   before=before_log_action, after=after_log_action)
+
+
 @dataclass
 class BrowserOptions:
     """options"""
@@ -261,6 +277,7 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
             result.path = '/'
         return result
 
+    @retry()
     def get_until(self, url: str, method: Callable[[D], T]) -> T:
         """Get the url until the method is true"""
         current_result = self.normilize_url_result(self.driver.current_url)
@@ -269,6 +286,7 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
             self.driver.get(url)
         return self.wait.until(method)
 
+    @retry()
     def scroll_to_view(self, locator: tuple[str, str], force=False) -> WebElement:
         """Scroll to the element"""
         elem = self.wait.until(EC.presence_of_element_located(locator))
@@ -276,6 +294,7 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
             self.driver.execute_script("arguments[0].scrollIntoView();", elem)
         return elem
 
+    @retry()
     def select(self, locator: tuple[str, str]):
         """Select the element(radio or checkbox)"""
         elem = self.scroll_to_view(locator, force=True)
@@ -284,12 +303,14 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
             elem.click()
             self.wait.until(EC.element_to_be_selected(locator))
 
+    @retry()
     def click(self, locator: tuple[str, str]):
         """Click the element"""
         elem = self.scroll_to_view(locator)
         elem = self.wait.until(EC.element_to_be_clickable(elem))
         elem.click()
 
+    @retry()
     def input(self, locator: tuple[str, str], value: str, clear=False):
         """Input some value to the element"""
         elem = self.wait.until(EC.element_to_be_clickable(locator))
@@ -301,19 +322,3 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
             elem.send_keys(value)
         else:
             self.driver.execute_script("arguments[0].value = arguments[1];", elem, value)
-
-
-class RetryingException(Exception):
-    """Retry exception"""
-
-
-default_stop_condition = stop_after_attempt(3)
-default_wait_action = wait_random_exponential(max=30)
-default_retry_condition = retry_if_exception_type(
-    (WebDriverException, RequestException, TimeoutError, RetryingException))
-before_log_action = before_log(logger, logging.DEBUG)
-after_log_action = after_log(logger, logging.DEBUG)
-retry = partial(_retry, stop=default_stop_condition, wait=default_wait_action, retry=default_retry_condition,
-                before=before_log_action, after=after_log_action)
-Retrying = partial(_Retrying, stop=default_stop_condition, wait=default_wait_action, retry=default_retry_condition,
-                   before=before_log_action, after=after_log_action)

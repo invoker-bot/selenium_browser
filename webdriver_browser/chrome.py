@@ -8,7 +8,7 @@ import seleniumwire.undetected_chromedriver as wire_uc
 from undetected_chromedriver.patcher import Patcher
 from webdriver_manager.chrome import ChromeDriverManager
 from . import RemoteBrowser, BrowserOptions
-from .download import get_wdm_download_manager
+from .download import get_wdm_download_manager, ProxyConfig
 
 __all__ = ['BrowserOptions', 'ChromeBrowser']
 
@@ -94,11 +94,12 @@ class ChromeBrowser(RemoteBrowser):
                 'version_main': version_main,
                 'driver_executable_path': driver_executable_path if os.path.exists(driver_executable_path) else None,
             }
-            if self._use_seleniumwire():
-                chrome = wire_uc.Chrome(seleniumwire_options=self._default_seleniumwire_config(),
-                                        **params)
-            else:
-                chrome = uc.Chrome(**params)
+            with ProxyConfig(self.options.proxy_downloader):
+                if self._use_seleniumwire():
+                    chrome = wire_uc.Chrome(seleniumwire_options=self._default_seleniumwire_config(),
+                                            **params)
+                else:
+                    chrome = uc.Chrome(**params)
             if not os.path.isfile(driver_executable_path):
                 shutil.copyfile(chrome.patcher.executable_path, driver_executable_path)
             return chrome
