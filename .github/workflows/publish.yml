@@ -44,6 +44,11 @@ jobs:
         env:
           BROWSER: ${{ matrix.browser }}
       
+      - name: Run tests
+        run: |
+          pip install .[test]
+          pytest
+
       - name: Build package
         if: matrix.browser == 'chrome'
         run: |
