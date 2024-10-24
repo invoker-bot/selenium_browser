@@ -8,6 +8,17 @@ __version__ = '0.1.8'
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 
+tests_require = [
+    'pytest >= 7.4.3',
+    'pytest-retry >= 1.5.0',
+    'pytest-mock >= 3.12.0',
+    'pytest-cov >= 4.1.0',
+    'flake8 >= 6.1.0',
+    'pylint >= 3.0.3',
+    'mock >= 5.1.0',
+    'freezegun >= 1.4.0',
+    'pproxy >= 2.7.8',
+]
 
 setup(
     name='webdriver-browser',
@@ -39,6 +50,7 @@ setup(
         'psutil >= 5.9.8',
         'urllib3 ~= 1.26.18',
         'selenium >= 4.15.0',
+        'blinker >=1.4, < 1.8.0',
         'selenium-wire >= 5.1.0',
         'webdriver_manager >= 4.0.1',
         'undetected-chromedriver >= 3.5.5',
@@ -48,17 +60,10 @@ setup(
         'requests >= 2.32.3',
     ],
     setup_requires=['pytest-runner >= 6.0.1'],
-    tests_require=[
-        'pytest >= 7.4.3',
-        'pytest-retry >= 1.5.0',
-        'pytest-mock >= 3.12.0',
-        'pytest-cov >= 4.1.0',
-        'flake8 >= 6.1.0',
-        'pylint >= 3.0.3',
-        'mock >= 5.1.0',
-        'freezegun >= 1.4.0',
-        'pproxy >= 2.7.8',
-    ],
+    tests_require=tests_require,
+    extras_require={
+        'test': tests_require,
+    },
     license='MIT',
     aliases={
         'test': 'pytest',
