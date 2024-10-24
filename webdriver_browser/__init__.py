@@ -12,7 +12,6 @@ from dataclasses import dataclass
 from functools import partial
 import psutil
 from pyee import EventEmitter
-import requestium
 from tenacity import Retrying, stop_after_attempt, wait_random_exponential, after_log, before_log, retry_if_exception_type, retry_if_not_result
 from requests.exceptions import RequestException
 from selenium.common.exceptions import WebDriverException
@@ -25,6 +24,8 @@ from selenium.webdriver.common.service import Service as DriverService
 from selenium.webdriver.common.options import ArgOptions as DriverOptions
 from webdriver_manager.core.manager import DriverManager
 from .patch import pack_dir_with_ref, unpack_dir_with_ref
+from .session import Sessionium
+from .utils import to_proxy_dict
 
 
 D = TypeVar("D", bound=Union[WebDriver, WebElement])
@@ -46,29 +47,37 @@ class BrowserOptions:
     singleton: bool = False
     disable_image: bool = False
     use_multi_procs: bool = False
-    undetected_chrome_driver: bool = None
+    undetected_chrome_driver: bool = False
+    proxy_downloader: str = None
 
 
 class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
     """Remote browser"""
     browser_names = {'msedge', 'chrome', 'firefox', 'firefox-bin'}
 
-    def __init__(self, options: BrowserOptions = None, driver_manager: DriverManager = None):
+    def __init__(self, options: BrowserOptions = None):
         if options is None:
             options = BrowserOptions()
         self.options = options
+        self.session = Sessionium(driver_creater=self._initialize_driver, default_timeout=options.wait_timeout,
+                                  headless=options.headless)
+        self._wait = None
+
+    def _initialize_driver(self):
+        options = self.options
         if options.singleton:
             self.kill_all_browser()
-        if driver_manager is None:
-            driver_manager = self.default_driver_manager()
+        driver_manager = self._default_driver_manager()
         if options.data_dir is not None:  # pylint: disable=too-many-nested-blocks
             self.make_root_data_dir()
             if options.compressed:
                 if not os.path.isdir(self.get_data_dir('default')):
                     default_options = BrowserOptions(data_dir='default', headless=True, compressed=False)
-                    default_driver = self.new_driver(default_options, self.driver_options(
-                        default_options), self.driver_service(options, driver_manager))
+                    current_options = self.options
+                    self.options = default_options
+                    default_driver = self._new_driver(self._driver_options(), self._driver_service(driver_manager))
                     default_driver.quit()
+                    self.options = current_options
                 if not os.path.isdir(self.get_data_dir('default')):
                     options.compressed = False
                     logger.warning("Reference dir '%s' not created, using uncompressed data dir", options.data_dir)
@@ -81,13 +90,23 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
                             except ValueError:
                                 logger.warning("Reference dir '%s' changed, using uncompressed data",
                                                self.get_data_dir('default'))
-        self.driver = self.new_driver(options, self.driver_options(options), self.driver_service(options, driver_manager))
-        self.config_driver()
-        self.session = requestium.Session(driver=self.driver, headless=options.headless, default_timeout=options.wait_timeout)
-        self.session.copy_user_agent_from_driver()
+        driver = self._new_driver(self._driver_options(), self._driver_service(driver_manager))
+        self.session._driver = driver  # pylint: disable=protected-access
+        self._config_driver()
         if options.proxy_server is not None:
-            self.session.proxies = {'http': options.proxy_server, 'https': options.proxy_server}
-        self.wait = WebDriverWait(self.driver, options.wait_timeout)
+            self.session.proxies = to_proxy_dict(options.proxy_server)
+        self._wait = WebDriverWait(driver, options.wait_timeout)
+        return driver
+
+    @property
+    def driver(self):
+        """Driver"""
+        return self.session.driver
+
+    @property
+    def wait(self):
+        """Should get the driver first or will return None"""
+        return self._wait
 
     def __enter__(self):
         return self
@@ -110,6 +129,8 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
 
     def quit(self):
         """Quit the browser"""
+        if self.session._driver is None:  # pylint: disable=protected-access
+            return
         with suppress(WebDriverException, ConnectionResetError):
             self.driver.quit()
         if self.options.data_dir is not None:
@@ -126,30 +147,25 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
                 else:
                     logger.warning("Data dir '%s' not found", self.data_dir)
 
-    @classmethod
     @abstractmethod
-    def driver_options(cls, options: BrowserOptions) -> DriverOptions:
+    def _driver_options(self) -> DriverOptions:
         """Driver options"""
 
-    @classmethod
     @abstractmethod
-    def driver_service(cls, options: BrowserOptions, driver_manager: DriverManager) -> DriverService:
+    def _driver_service(self, driver_manager: DriverManager) -> DriverService:
         """Driver service"""
 
-    @classmethod
     @abstractmethod
-    def new_driver(cls, options: BrowserOptions, driver_options: DriverOptions, service: DriverService) -> WebDriver:
+    def _new_driver(self, driver_options: DriverOptions, service: DriverService) -> WebDriver:
         """Default driver"""
 
-    @classmethod
     @abstractmethod
-    def default_driver_manager(cls) -> DriverManager:
+    def _default_driver_manager(self) -> DriverManager:
         """Default driver manager"""
 
-    @classmethod
-    def use_seleniumwire(cls, options: BrowserOptions):
+    def _use_seleniumwire(self):
         """Use seleniumwire or not"""
-        return options.force_selenium_wire or (options.proxy_server is not None and options.proxy_server.find('@') != -1)
+        return self.options.force_selenium_wire or (self.options.proxy_server is not None and self.options.proxy_server.find('@') != -1)
 
     @classmethod
     def kill_all_browser(cls):
@@ -163,13 +179,12 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
                 except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
                     logger.warning("zombie process: %s(%s)", proc_name, proc.info['pid'])
 
-    @classmethod
-    def default_seleniumwire_config(cls, options: BrowserOptions):
+    def _default_seleniumwire_config(self):
         """Default seleniumwire config"""
         return {
             'proxy': {
-                'http': options.proxy_server,
-                'https': options.proxy_server,
+                'http': self.options.proxy_server,
+                'https': self.options.proxy_server,
                 'no_proxy': 'localhost, 127.0.0.1',
             }
         }
@@ -184,7 +199,7 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
         except (WebDriverException, RequestException):
             return False
 
-    def config_driver(self):
+    def _config_driver(self):
         """Configure the driver"""
         self.driver.set_window_size(int(os.getenv('SELENIUM_BROWSER_WINDOW_WIDTH', '1920')),
                                     int(os.getenv('SELENIUM_BROWSER_WINDOW_HEIGHT', '1080')))

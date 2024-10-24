@@ -45,6 +45,7 @@ setup(
         'tenacity >= 8.2.3',
         'pyee >= 11.1.0',
         'requestium >= 0.4.0',
+        'requests >= 2.32.3',
     ],
     setup_requires=['pytest-runner >= 6.0.1'],
     tests_require=[

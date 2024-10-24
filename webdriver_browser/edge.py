@@ -2,31 +2,31 @@
 from selenium import webdriver
 from webdriver_manager.microsoft import EdgeChromiumDriverManager
 from seleniumwire import webdriver as wire_webdriver
-from .chrome import ChromeBrowser
+from .chrome import ChromeBrowser, BrowserOptions
+from .download import get_wdm_download_manager
+
+
+__all__ = ['BrowserOptions', 'EdgeBrowser']
 
 
 class EdgeBrowser(ChromeBrowser):
     """Edge browser"""
     browser_names = {'edge', 'msedge', 'microsoftedge', 'ms-edge', 'microsoft-edge'}
 
-    @classmethod
-    def driver_options(cls, options):
+    def _driver_options(self):
         driver_options = webdriver.EdgeOptions()
-        return cls.config_driver_options(options, driver_options)
+        return self._config_driver_options(driver_options)
 
-    @classmethod
-    def driver_service(cls, options, driver_manager):
+    def _driver_service(self, driver_manager):
         """Driver service"""
         return webdriver.EdgeService(driver_manager.install())
 
-    @classmethod
-    def default_driver_manager(cls):
+    def _default_driver_manager(self):
         """Default driver manager"""
-        return EdgeChromiumDriverManager()
+        return EdgeChromiumDriverManager(download_manager=get_wdm_download_manager(self.options.proxy_downloader))
 
-    @classmethod
-    def new_driver(cls, options, driver_options, service):
-        if cls.use_seleniumwire(options):
+    def _new_driver(self, driver_options, service):
+        if self._use_seleniumwire():
             return wire_webdriver.Edge(options=driver_options, service=service,
-                                       seleniumwire_options=cls.default_seleniumwire_config(options))
+                                       seleniumwire_options=self._default_seleniumwire_config())
         return webdriver.Edge(options=driver_options, service=service)

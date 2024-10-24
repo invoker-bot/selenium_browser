@@ -26,7 +26,7 @@ def generate_dir_hash(directory: str):
     return hash_dict
 
 
-def generate_dir_diff_with_ref(ref_dir: str, src_dir: str, relpath="."):
+def generate_dir_diff_with_ref(ref_dir: str, src_dir: str, relpath="."):  # pylint: disable=too-many-locals
     """Generate a diff of a directory with a reference directory."""
     diff_with_ref = {
         "left_only": {
@@ -88,7 +88,7 @@ def pack_dir_with_ref(ref_dir: str, zip_path: str, src_dir: str, remove=True):
         shutil.rmtree(src_dir)
 
 
-def unpack_dir_with_ref(ref_dir: str, zip_path: str, dist_dir: str, remove=True):
+def unpack_dir_with_ref(ref_dir: str, zip_path: str, dist_dir: str, remove=True):  # pylint: disable=too-many-locals
     """Unpack a directory with a reference directory."""
     with open(zip_path, "rb") as f:
         diff_with_ref = pickle.loads(zlib.decompress(f.read()))

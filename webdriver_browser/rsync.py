@@ -50,6 +50,7 @@ def rsyncdelta(datastream, remotesignatures, blocksize=4096):  # pylint: disable
     match = True
     matchblock = -1
     tailsize = 0
+    checksum, a, b = 0, 0, 0
     deltaqueue = collections.deque()
 
     while True:
