@@ -9,8 +9,10 @@ from urllib.parse import urlparse, ParseResult
 from abc import ABC, abstractmethod
 from typing import Callable, Optional, Union, TypeVar
 from dataclasses import dataclass
+from functools import partial
 import psutil
-from tenacity import Retrying, stop_after_attempt, wait_random_exponential, after_log, before_log, retry_if_exception_type, retry_if_not_result
+from tenacity import Retrying as _Retrying, retry as _retry, stop_after_attempt, wait_random_exponential, after_log, before_log, \
+    retry_if_exception_type
 from requests.exceptions import RequestException
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.remote.webdriver import WebDriver
@@ -299,3 +301,19 @@ class RemoteBrowser(ABC):  # pylint: disable=too-many-public-methods
             elem.send_keys(value)
         else:
             self.driver.execute_script("arguments[0].value = arguments[1];", elem, value)
+
+
+class RetryingException(Exception):
+    """Retry exception"""
+
+
+default_stop_condition = stop_after_attempt(3)
+default_wait_action = wait_random_exponential(max=30)
+default_retry_condition = retry_if_exception_type(
+    (WebDriverException, RequestException, TimeoutError, RetryingException))
+before_log_action = before_log(logger, logging.DEBUG)
+after_log_action = after_log(logger, logging.DEBUG)
+retry = partial(_retry, stop=default_stop_condition, wait=default_wait_action, retry=default_retry_condition,
+                before=before_log_action, after=after_log_action)
+Retrying = partial(_Retrying, stop=default_stop_condition, wait=default_wait_action, retry=default_retry_condition,
+                   before=before_log_action, after=after_log_action)
