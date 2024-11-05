@@ -14,6 +14,7 @@ class ProxyHttpClient(WDMHttpClient):
         self.proxy = to_proxy_dict(proxy)
 
     def get(self, url: str, **kwargs):
+        # print(f"ProxyHttpClient.get: {url}")
         try:
             resp = requests.get(
                 url=url, verify=self._ssl_verify, stream=True, proxies=self.proxy, timeout=30, **kwargs)
