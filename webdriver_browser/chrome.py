@@ -86,6 +86,8 @@ class ChromeBrowser(RemoteBrowser):
                 version_main = int(version.split('.')[0])
             else:
                 version_main = None
+            if os.path.exists(driver_executable_path):
+                os.chmod(driver_executable_path, 0o755)
             params = {
                 'options': driver_options,
                 'user_data_dir': user_data_dir,
